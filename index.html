@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spartan IT — Arquitectura (boceto)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4EFE6; --surface:#FCFAF4; --surface-2:#F7F2E8;
+    --ink:#1A1815; --muted:#6B665B; --faint:#9A9384;
+    --line:#E3DBCC; --line-strong:#D6CCB8;
+    --blue:#2643B8; --blue-deep:#1B3088; --blue-tint:#E7EAF8; --blue-tint-2:#D8DEF6;
+    --teal:#18756B; --teal-deep:#0F564E; --teal-tint:#DCEFEC;
+    --amber:#9A6A1E; --amber-tint:#F7ECD2;
+    --rust:#A53A2C; --rust-tint:#F4DED9;
+    --off:#BAB2A1; --green-tint:#D6ECD9; --green-deep:#1E5631;
+    --radius:14px; --shadow:0 1px 2px rgba(26,24,21,.04), 0 8px 28px -18px rgba(26,24,21,.28);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:600;margin:0 0 10px;}
+  h1{font-size:clamp(27px,4vw,42px);line-height:1.05;letter-spacing:-.02em;font-weight:800;margin:0 0 12px;max-width:22ch;}
+  h1 .accent{color:var(--blue);}
+  .lede{font-size:15.5px;color:var(--muted);margin:0;max-width:66ch;}
+  .rule{height:2px;background:var(--ink);margin:20px 0 0;width:54px;}
+
+  /* shell */
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:240px;flex:none;background:var(--surface);border-right:1px solid var(--line);
+    padding:26px 16px;position:sticky;top:0;height:100vh;overflow:auto;}
+  .brand{font-weight:800;color:var(--blue);font-size:18px;margin:0;}
+  .brand small{display:block;color:var(--faint);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:3px;}
+  .nav{margin-top:26px;display:flex;flex-direction:column;gap:4px;}
+  .nav button{appearance:none;text-align:left;border:none;background:transparent;color:var(--ink);
+    font-family:inherit;font-size:14px;font-weight:500;padding:11px 12px;border-radius:9px;cursor:pointer;display:flex;gap:10px;align-items:center;}
+  .nav button:hover{background:var(--surface-2);}
+  .nav button[aria-current="true"]{background:var(--blue);color:#fff;}
+  .nav .n-num{font-family:'DM Mono',monospace;font-size:11px;opacity:.65;}
+  .side-foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--faint);line-height:1.5;}
+  .content{flex:1;min-width:0;padding:38px 44px 80px;max-width:1180px;}
+  .section{display:none;}
+  .section.active{display:block;}
+  .sec-head{margin-bottom:28px;}
+  @media(max-width:860px){
+    .app{flex-direction:column;}
+    .sidebar{width:auto;height:auto;position:sticky;top:0;z-index:10;border-right:none;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;gap:14px;overflow-x:auto;padding:12px 16px;}
+    .brand{white-space:nowrap;font-size:15px;}
+    .brand small{display:none;}
+    .nav{flex-direction:row;margin-top:0;gap:7px;}
+    .nav button{white-space:nowrap;padding:10px 15px;gap:7px;}
+    .side-foot{display:none;}
+    .content{padding:24px 18px 60px;}
+  }
+
+  /* status banner */
+  .status{background:var(--amber-tint);border:1px solid #E7D3A6;border-left:4px solid #C9962E;border-radius:0 10px 10px 0;
+    padding:12px 16px;margin:0 0 22px;font-size:13px;color:#6B4A12;line-height:1.55;}
+  .status strong{color:#6B4A12;}
+
+  /* doc tab */
+  .doc h2{font-size:21px;font-weight:800;color:var(--blue);letter-spacing:-.01em;margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  .doc h3{font-size:15px;font-weight:700;color:var(--blue-deep);margin:20px 0 8px;}
+  .doc p{font-size:14.5px;color:var(--ink);margin:0 0 12px;line-height:1.62;}
+  .doc ul{font-size:14.5px;color:var(--ink);padding-left:20px;margin:0 0 12px;}
+  .doc li{margin:5px 0;line-height:1.55;}
+  .doc table{width:100%;border-collapse:collapse;margin:8px 0 18px;}
+  .doc th{background:var(--ink);color:#fff;font-size:11px;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:9px 11px;}
+  .doc td{border-bottom:1px solid var(--line);padding:9px 11px;font-size:13px;vertical-align:top;}
+  .doc tr:nth-child(even) td{background:var(--surface-2);}
+  .doc td:first-child{font-weight:600;color:var(--blue-deep);}
+  .doc .tablewrap{overflow-x:auto;}
+  .doc .callout{background:var(--amber-tint);border-left:4px solid #C9962E;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:13.5px;color:#6B4A12;line-height:1.55;}
+  .doc .pillars{display:grid;grid-template-columns:1fr;gap:14px;margin:6px 0 8px;}
+  @media(min-width:760px){.doc .pillars{grid-template-columns:1fr 1fr;}}
+  .doc .pillar{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:15px 17px;}
+  .doc .pillar .pn{font-family:'DM Mono',monospace;font-size:11px;color:var(--blue);font-weight:500;}
+  .doc .pillar h4{margin:3px 0 6px;font-size:15px;font-weight:700;}
+  .doc .pillar p{font-size:13px;color:var(--muted);margin:0;line-height:1.55;}
+  .doc .deploy{display:grid;grid-template-columns:1fr;gap:12px;margin:10px 0 16px;}
+  @media(min-width:760px){.doc .deploy{grid-template-columns:1fr 1fr 1fr;}}
+  .doc .dcard{border:1px solid var(--line);border-top-width:4px;border-radius:0 0 12px 12px;background:var(--surface);box-shadow:var(--shadow);padding:14px 15px;}
+  .doc .dcard.nube{border-top-color:var(--off);}
+  .doc .dcard.hib{border-top-color:#C9962E;}
+  .doc .dcard.onprem{border-top-color:var(--teal);}
+  .doc .dcard h4{margin:0 0 2px;font-size:15px;font-weight:800;}
+  .doc .dcard .dfor{font-size:11.5px;color:var(--muted);margin:0 0 11px;line-height:1.4;font-style:italic;}
+  .doc .drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .doc .drow:last-of-type{border-bottom:none;}
+  .doc .drow .dc-comp{color:var(--ink);}
+  .doc .loc{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:2px 7px;border-radius:5px;white-space:nowrap;flex:none;}
+  .doc .loc.cli{background:var(--teal-tint);color:var(--teal-deep);}
+  .doc .loc.spa{background:var(--blue-tint);color:var(--blue-deep);}
+  .doc .loc.api{background:var(--amber-tint);color:#7a5a12;}
+  .doc .dcross{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line-strong);font-size:11.5px;color:var(--muted);line-height:1.45;}
+  .doc .dcross strong{color:var(--ink);}
+
+  /* sim tab */
+  .sim .note{background:var(--blue-tint);border:1px solid var(--blue-tint-2);border-left:4px solid var(--blue);border-radius:0 10px 10px 0;
+    padding:12px 16px;margin:0 0 22px;font-size:13px;color:var(--blue-deep);line-height:1.55;}
+  .sim .picker{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:17px 19px;margin-bottom:24px;}
+  .sim .picker .pl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:0 0 11px;}
+  .sim .chips{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .sim .qchip{appearance:none;text-align:left;border:1.5px solid var(--line-strong);background:var(--surface-2);color:var(--ink);
+    font-family:inherit;font-size:13.5px;padding:10px 13px;border-radius:10px;cursor:pointer;transition:border-color .15s ease,background .15s ease;display:flex;align-items:center;gap:9px;line-height:1.35;}
+  .sim .qchip:hover{border-color:var(--blue);}
+  .sim .qchip[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-tint);}
+  .sim .qchip .tg{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;flex:none;}
+  .sim .qchip .tg.cer{background:var(--blue-tint-2);color:var(--blue-deep);}
+  .sim .qchip .tg.lab{background:var(--teal-tint);color:var(--teal-deep);}
+  .sim .free{display:flex;gap:8px;flex-wrap:wrap;}
+  .sim .free input{flex:1;min-width:200px;border:1.5px solid var(--line-strong);background:var(--surface-2);color:var(--ink);
+    font-family:inherit;font-size:13.5px;padding:10px 12px;border-radius:10px;}
+  .sim .free input:focus{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue);}
+  .sim .runbtn{appearance:none;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:10px;cursor:pointer;}
+  .sim .runbtn:hover{background:var(--blue-deep);border-color:var(--blue-deep);}
+  .sim .resetbtn{appearance:none;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--muted);font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer;}
+  .sim .resetbtn:hover{border-color:var(--muted);color:var(--ink);}
+  .sim .tenant-sel{display:flex;gap:6px;align-items:center;margin-top:11px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  .sim .tenant-sel .tbtn{appearance:none;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);font-family:inherit;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;cursor:pointer;}
+  .sim .tenant-sel .tbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* pipeline */
+  .pipe{display:flex;flex-direction:column;gap:0;}
+  .stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:16px 18px;opacity:.4;filter:saturate(.4);transition:opacity .35s ease,filter .35s ease,border-color .35s ease;}
+  .stage.active{opacity:1;filter:none;border-color:var(--line-strong);}
+  .stage .st-head{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+  .stage .st-n{font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:var(--blue);width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .stage .st-t{font-size:14px;font-weight:700;}
+  .stage .st-sub{font-size:12px;color:var(--faint);}
+  .connector{width:2px;height:18px;background:var(--line-strong);margin:0 auto;opacity:.4;transition:opacity .35s ease;}
+  .connector.active{opacity:1;}
+  .stage .body{margin-top:11px;}
+
+  /* tenant stage */
+  .tenants{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tcard{border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;background:var(--surface-2);transition:all .3s ease;opacity:.5;}
+  .tcard .tn{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px;}
+  .tcard .tv{font-size:11.5px;color:var(--faint);margin-top:2px;}
+  .tcard .tconn{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:6px;}
+  .tcard.on .tconn{color:var(--blue-deep);}
+  .tcard.on.lab .tconn{color:var(--teal-deep);}
+  .tcard .dot{width:8px;height:8px;border-radius:50%;background:var(--off);flex:none;}
+  .tcard.on{opacity:1;border-color:var(--blue-tint-2);background:var(--blue-tint);}
+  .tcard.on .dot{background:var(--blue);box-shadow:0 0 0 3px var(--blue-tint-2);}
+  .tcard.on.lab{border-color:var(--teal-tint);background:var(--teal-tint);}
+  .tcard.on.lab .dot{background:var(--teal);box-shadow:0 0 0 3px #BfE3DC;}
+  .iso-note{font-size:11.5px;color:var(--muted);margin-top:9px;}
+  .iso-note strong{color:var(--ink);}
+
+  /* cascade chain */
+  .chain{display:flex;flex-direction:column;gap:6px;}
+  .crule{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);font-size:13px;transition:all .25s ease;}
+  .crule .ci{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--faint);flex:none;width:30px;}
+  .crule .ctxt{flex:1;line-height:1.4;}
+  .crule .ctxt .ccond{color:var(--muted);font-size:12px;}
+  .crule .cverdict{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;flex:none;}
+  .crule.skip{opacity:.55;}
+  .crule.skip .cverdict{color:var(--faint);}
+  .crule.hit{border-color:var(--blue);background:var(--blue-tint);}
+  .crule.hit .ci{color:var(--blue);}
+  .crule.hit .cverdict{color:var(--blue-deep);}
+  .crule.unreached{opacity:.35;}
+  .crule.unreached .cverdict{color:var(--faint);}
+  .crule.deftrap.hit{border-color:var(--rust);background:var(--rust-tint);}
+  .crule.deftrap.hit .ci,.crule.deftrap.hit .cverdict{color:var(--rust);}
+  .chain-result{font-size:12.5px;color:var(--ink);margin-top:11px;padding:9px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);display:none;}
+  .chain-result.show{display:block;}
+  .chain-result strong{color:var(--blue-deep);}
+  .chain-result.deft strong{color:var(--rust);}
+  .chain-note{font-size:12px;color:var(--blue-deep);background:var(--blue-tint);border-left:3px solid var(--blue);border-radius:0 7px 7px 0;padding:8px 11px;margin-top:11px;line-height:1.5;}
+  .chain-note strong{color:var(--blue-deep);}
+  .chain-cap{font-size:11.5px;color:var(--faint);margin-top:10px;line-height:1.5;}
+
+  /* egress */
+  .egress{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink);background:var(--green-tint);border-radius:9px;padding:11px 13px;line-height:1.45;}
+  .egress.skip{background:var(--surface-2);color:var(--muted);}
+  .egress .ei{font-family:'DM Mono',monospace;font-weight:500;color:var(--green-deep);flex:none;}
+  .egress.skip .ei{color:var(--faint);}
+
+  /* response */
+  .resp{border-radius:11px;padding:14px 16px;background:var(--surface-2);border:1.5px solid var(--line-strong);}
+  .resp .rk{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:0 0 4px;}
+  .resp .rt{font-size:14px;font-weight:600;margin:0 0 12px;line-height:1.45;}
+  .resp .rmeta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+  @media(max-width:560px){.resp .rmeta{grid-template-columns:1fr;}}
+  .resp .m{background:var(--surface);border-radius:9px;padding:9px 11px;border:1px solid var(--line);}
+  .resp .m .mk{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;}
+  .resp .m .mv{font-size:13px;font-weight:700;margin-top:2px;}
+  .badge{display:inline-block;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;}
+  .b-green{background:var(--green-tint);color:var(--green-deep);}
+  .b-amber{background:var(--amber-tint);color:#7a5a12;}
+  .b-rust{background:var(--rust-tint);color:#8c2d22;}
+  .b-blue{background:var(--blue-tint);color:var(--blue-deep);}
+  .b-teal{background:var(--teal-tint);color:var(--teal-deep);}
+  .b-grey{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);}
+
+  .qecho{font-size:14px;font-weight:600;color:var(--ink);}
+  .legend{margin-top:26px;font-size:12px;color:var(--faint);max-width:74ch;border-top:1px solid var(--line);padding-top:16px;line-height:1.55;}
+  .legend strong{color:var(--muted);}
+
+  /* roadmap tab */
+  .road .banner-strong{background:#2A251F;color:#EDE4D3;border-radius:12px;padding:16px 19px;margin:0 0 20px;line-height:1.6;font-size:13.5px;}
+  .road .banner-strong strong{color:#fff;}
+  .road .banner-strong .bs-now{display:inline-block;margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;background:var(--teal);color:#fff;padding:4px 11px;border-radius:6px;letter-spacing:.04em;}
+  .road .phase{border:1px solid var(--line);border-left-width:4px;border-radius:0 12px 12px 0;background:var(--surface);box-shadow:var(--shadow);padding:14px 18px;margin:14px 0;}
+  .road .phase.now{border-left-color:var(--teal);}
+  .road .phase.soon{border-left-color:#C9962E;}
+  .road .phase.later{border-left-color:var(--off);}
+  .road .phase-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .road .phase-head h3{margin:0;font-size:16px;font-weight:800;color:var(--ink);border:none;padding:0;}
+  .road .ph-badge{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px;border-radius:6px;}
+  .road .ph-badge.now{background:var(--teal-tint);color:var(--teal-deep);}
+  .road .ph-badge.soon{background:var(--amber-tint);color:#7a5a12;}
+  .road .ph-badge.later{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);}
+  .road .ph-trigger{font-size:12.5px;color:var(--muted);margin:0 0 10px;font-style:italic;}
+  .road .phase ul{margin:0;padding-left:18px;}
+  .road .phase li{font-size:13.5px;margin:5px 0;line-height:1.5;}
+  .road .rtag{display:inline-block;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:1px 7px;border-radius:5px;background:var(--blue-tint);color:var(--blue-deep);white-space:nowrap;}
+  .road .rtag.done{background:var(--green-tint);color:var(--green-deep);}
+  .road .out{font-size:12.5px;color:var(--muted);margin-top:10px;padding-top:9px;border-top:1px dashed var(--line-strong);line-height:1.5;}
+  .road .out strong{color:var(--ink);}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <p class="brand">Spartan IT<small>Arquitectura · boceto</small></p>
+    <nav class="nav">
+      <button data-target="sec-doc" aria-current="true"><span class="n-num">01</span> Documento</button>
+      <button data-target="sec-sim"><span class="n-num">02</span> Simulación</button>
+      <button data-target="sec-road"><span class="n-num">03</span> Roadmap</button>
+    </nav>
+    <div class="side-foot">Ejercicio de arquitectura · prospectivo. Boceto para pensar la plataforma a escala, no el sistema actual.</div>
+  </aside>
+
+  <main class="content">
+
+    <!-- ============ DOCUMENTO ============ -->
+    <section id="sec-doc" class="section doc active">
+      <div class="sec-head">
+        <p class="eyebrow">Spartan IT · arquitectura</p>
+        <h1>Plataforma multi-tenant <span class="accent">a escala</span></h1>
+        <p class="lede">Boceto de cómo se vería Spartan sirviendo a varios clientes, integrando la propuesta de Tomás (ruteo, aislamiento, claves, facturación) con el modelo de flujo de una consulta. Para discutir entre nosotros.</p>
+        <div class="rule"></div>
+      </div>
+
+      <div class="status"><strong>Esto es un boceto, no el sistema.</strong> Es un ejercicio de arquitectura objetivo —cómo escalaría la plataforma con muchos clientes—, hecho mientras esperamos el acceso al repo de la cerealera. Nada de esto está construido todavía. Sirve para pensar la secuencia y discutir las decisiones abiertas, no como plan de las próximas semanas.</p>
+
+      <h2>1. La propuesta, en cuatro pilares</h2>
+      <p>Tomás planteó cuatro piezas para el Spartan multi-cliente. Desarrolladas:</p>
+      <div class="pillars">
+        <div class="pillar"><span class="pn">pilar 01</span><h4>Multi-tenancy con aislamiento</h4><p>Un diseño modular por cliente: los datos y procesos de cada tenant quedan separados, sin interferencia ni fuga entre clientes. Es, además, la tesis de privacidad de Spartan hecha arquitectura.</p></div>
+        <div class="pillar"><span class="pn">pilar 02</span><h4>Ruteo inteligente centralizado</h4><p>Un punto de entrada que identifica de qué tenant viene cada solicitud y la deriva a su instancia dedicada. Es el ruteo <em>entre clientes</em> — distinto del ruteo <em>dentro</em> de cada cliente (ver §4).</p></div>
+        <div class="pillar"><span class="pn">pilar 03</span><h4>Gestión de claves API segura</h4><p>Un gestor de credenciales (p. ej. de Claude) que aísla recursos por cliente y limita el acceso a las APIs a las entidades autorizadas. Evita que el consumo de un cliente toque al de otro.</p></div>
+        <div class="pillar"><span class="pn">pilar 04</span><h4>Automatización operativa</h4><p>Monitoreo de consumo, facturación recurrente y corte automático por falta de pago. Ojo: acá se mezclan dos medidores distintos que conviene separar (ver §5).</p></div>
+      </div>
+
+      <h2>2. Hoy (piloto) vs. a escala</h2>
+      <p>La propuesta describe el estado <em>a escala</em>. Conviene marcar qué de eso vive ya en el piloto y qué se suma después, para no construir el destino antes de validar.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Pieza</th><th>Hoy — piloto (1 cliente)</th><th>A escala (N clientes)</th></tr></thead>
+        <tbody>
+          <tr><td>Instancia</td><td>Una, para la cerealera. Sobre vistas parciales que entrega su IT.</td><td>Una instancia aislada por tenant, aprovisionada en serie.</td></tr>
+          <tr><td>Ruteo de tenant</td><td>No hace falta — hay un solo cliente.</td><td>Ruteo centralizado que deriva a la instancia correcta.</td></tr>
+          <tr><td>Ruteo de consulta</td><td>Sí, ya — cascada determinístico / semántico (§4).</td><td>Igual, dentro de cada instancia.</td></tr>
+          <tr><td>Claves / consumo</td><td>Instrumentación de costo por evento (telemetría interna).</td><td>+ gestor de claves por tenant, aislamiento de recursos.</td></tr>
+          <tr><td>Cobranza</td><td>Piloto cobrado como proyecto. Sin recurrencia.</td><td>Facturación recurrente + corte automático por pago.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><strong>La secuencia, no el sí/no.</strong> El multi-tenancy, el gestor de claves y la facturación automática no están mal — están <em>adelantados</em>. Se construyen mejor después del piloto, sabiendo cómo son los clientes reales. La pregunta no es "¿multi-tenant sí o no?", es "¿ahora o después de validar la cerealera?".</div>
+
+      <h2>3. La forma del sistema</h2>
+      <p>Una solicitud entra, se resuelve a qué tenant pertenece, se deriva a su instancia aislada, y ahí adentro se procesa. Cada tenant tiene su propia instancia (datos, config, conexión a su sistema), y el motor —el core— es el mismo para todos. Es "un core, muchos productos" llevado a la infraestructura: lo que cambia entre clientes es configuración y aislamiento, no el código base.</p>
+
+      <h3>La capa de integración: conectores por tenant</h3>
+      <p>Lo que más cambia entre clientes —y donde está buena parte del trabajo real— es <strong>cómo cada instancia llega al sistema del cliente</strong>. No hay dos iguales: uno corre sobre SQL Server, otro sobre Oracle, otro sobre SAP, otro sobre vistas parciales o Excel compartido. La cerealera del piloto ya lo muestra: no nos abre la base, nos entrega vistas. Esa capa de conectores es heterogénea por cliente, y es justamente donde Spartan tiene ventaja —integrar legacy es difícil y poco copiable—. En la simulación (pestaña 02) se ve qué conector usa cada tenant.</p>
+
+      <h3>Dónde vive cada componente: nube / híbrido / on-premise</h3>
+      <p>La pieza más estratégica es <strong>qué cruza el perímetro del cliente</strong>. La misma plataforma puede correr en tres modos según cuán sensible sea el dato — y eso define a qué cliente le podés vender. Hoy, en el piloto de la cerealera, el modelo corre en una API externa (modo híbrido); el modo on-premise con inferencia local es la capacidad que la arquitectura necesita para salud y regulados, no algo ya construido.</p>
+      <div class="deploy">
+        <div class="dcard nube">
+          <h4>Nube</h4>
+          <p class="dfor">Quiosco / PYME · dato poco sensible</p>
+          <div class="drow"><span class="dc-comp">Datos del cliente</span><span class="loc spa">Spartan</span></div>
+          <div class="drow"><span class="dc-comp">Conector</span><span class="loc spa">Spartan</span></div>
+          <div class="drow"><span class="dc-comp">Router</span><span class="loc spa">Spartan</span></div>
+          <div class="drow"><span class="dc-comp">Inferencia (LLM)</span><span class="loc api">API externa</span></div>
+          <div class="drow"><span class="dc-comp">Telemetría</span><span class="loc spa">Spartan</span></div>
+          <p class="dcross"><strong>Cruza la frontera:</strong> el dato del cliente sale de su perímetro. Máxima simplicidad operativa, mínima protección.</p>
+        </div>
+        <div class="dcard hib">
+          <h4>Híbrido</h4>
+          <p class="dfor">La cerealera · dato comercial que no se mueve</p>
+          <div class="drow"><span class="dc-comp">Datos del cliente</span><span class="loc cli">Cliente</span></div>
+          <div class="drow"><span class="dc-comp">Conector</span><span class="loc cli">Cliente</span></div>
+          <div class="drow"><span class="dc-comp">Router</span><span class="loc spa">Spartan</span></div>
+          <div class="drow"><span class="dc-comp">Inferencia (LLM)</span><span class="loc api">API externa</span></div>
+          <div class="drow"><span class="dc-comp">Telemetría</span><span class="loc spa">Spartan</span></div>
+          <p class="dcross"><strong>Cruza la frontera:</strong> el dato queda en el cliente, pero el texto de la consulta va al modelo externo. Acá el guardrail tiene doble sentido: además de "los números salen de la base", importa <em>qué se manda</em> al modelo.</p>
+        </div>
+        <div class="dcard onprem">
+          <h4>On-premise</h4>
+          <p class="dfor">Salud / regulado · dato que no puede salir (Ley 25.326)</p>
+          <div class="drow"><span class="dc-comp">Datos del cliente</span><span class="loc cli">Cliente</span></div>
+          <div class="drow"><span class="dc-comp">Conector</span><span class="loc cli">Cliente</span></div>
+          <div class="drow"><span class="dc-comp">Router</span><span class="loc cli">Cliente</span></div>
+          <div class="drow"><span class="dc-comp">Inferencia (LLM)</span><span class="loc cli">Cliente (local)</span></div>
+          <div class="drow"><span class="dc-comp">Telemetría</span><span class="loc cli">Cliente → export</span></div>
+          <p class="dcross"><strong>Cruza la frontera:</strong> nada. El modelo corre local (p. ej. Ollama); la telemetría se captura adentro y se exporta como paso separado. Máxima protección, máxima complejidad de despliegue.</p>
+        </div>
+      </div>
+
+      <h2>4. El doble ruteo (el corazón)</h2>
+      <p>Hay dos niveles de ruteo anidados, y conviene no confundirlos porque son problemas distintos en escalas distintas:</p>
+      <ul>
+        <li><strong>Ruteo entre tenants</strong> (pilar 02, de Tomás): ¿de qué cliente es esta solicitud? → a su instancia aislada.</li>
+        <li><strong>Ruteo de consulta</strong> (dentro de la instancia): ¿esta consulta es un dato directo o necesita interpretación? → cadena determinística o semántica.</li>
+      </ul>
+      <p>El segundo es, en el fondo, el mismo modelo que un firewall: una cadena de reglas evaluadas en orden, donde la primera que matchea decide el camino, y una política por defecto para lo que no matchea (que en nuestro caso es <strong>no inventar</strong>: pedir aclaración antes que arriesgar un número falso). La <strong>pestaña 02</strong> muestra ese flujo funcionando.</p>
+      <p>Una aclaración importante: las cadenas no son del todo excluyentes. En la práctica, la mayoría de las consultas interpretativas son <strong>híbridas</strong> — primero un paso determinístico trae el dato de la base, y recién después el modelo lo interpreta. Por eso el guardrail de salida es central: garantiza que, aun en una respuesta semántica, los números salgan de la base y no del modelo. La cascada decide por dónde <em>entra</em> la consulta; el modelo razona sobre el dato, no lo inventa.</p>
+
+      <h2>5. Dos medidores distintos (no confundir)</h2>
+      <p>El pilar 04 junta dos cosas que tienen dueño y unidad diferentes. Separarlas es importante: si se construyen como una sola, se le termina mostrando el margen al cliente.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Medidor</th><th>Unidad</th><th>Quién lo ve</th><th>Para qué</th></tr></thead>
+        <tbody>
+          <tr><td>Telemetría de costo</td><td>tokens / USD</td><td>Interno (Spartan)</td><td>Saber cuánto nos cuesta operar. Nunca se muestra al cliente.</td></tr>
+          <tr><td>Consumo del cliente</td><td>eventos de negocio</td><td>El cliente</td><td>Facturarle y, si corresponde, cortar por falta de pago.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2>6. Decisiones de arquitectura abiertas</h2>
+      <p>Para discutir, no resueltas. Cada una se decide mejor con datos del piloto.</p>
+      <ul>
+        <li><strong>Dónde corre la inferencia (la más estratégica):</strong> nube nuestra, nube del cliente, u on-premise dentro de su perímetro. Es la tesis de privacidad hecha arquitectura — y la cerealera ya la empujó: un cliente que no abre su dato necesita que el modelo corra de su lado. Define a qué segmentos podés venderle (ver el cuadro de modos en §3).</li>
+        <li><strong>Capa de conectores:</strong> ¿un conector reutilizable por tipo de origen (SQL Server, Oracle, SAP, vistas/Excel), o integración a medida por cliente? Acá está buena parte del trabajo — y del moat. La meta es que la parte "a medida" se achique con cada cliente nuevo.</li>
+        <li><strong>Autenticación / autorización:</strong> ¿JWT por tenant, clave API + identificador de tenant, o subdominio? Define cómo se valida quién entra y a qué dato accede, y el blast radius si una credencial se filtra.</li>
+        <li><strong>Aislamiento por tenant:</strong> ¿base/esquema compartido aislado por tenant, instancia dedicada, u on-premise? Probablemente las tres conviven según el segmento (quiosco multi-tenant en nube; regulado on-premise).</li>
+        <li><strong>Gestión de claves:</strong> ¿una clave por tenant, o pool con atribución de consumo? Afecta aislamiento de costos y blast radius si una se filtra.</li>
+        <li><strong>Ruteo de tenant:</strong> ¿subdominio, token, o identificador en la solicitud? Cómo se deriva cada solicitud a la instancia correcta.</li>
+        <li><strong>Consultas híbridas:</strong> cuando una consulta combina lookup + interpretación (lo más común), ¿se resuelve con SQL analítico o con RAG+LLM? No todo lo interpretativo necesita RAG — un "este mes vs. el anterior" puede ser una query analítica más barata. Definir el límite.</li>
+        <li><strong>Conteo de consultas híbridas para facturar:</strong> si una consulta atraviesa varias cadenas (p. ej. OCR + determinístico), ¿cuenta como un evento o como varios para el medidor de consumo del cliente? Hay que definirlo para no doble-contar ni perder ingresos — y mantenerlo separado del costo interno, que sí se acumula por etapa (ver §5).</li>
+        <li><strong>Usuario en varios tenants:</strong> un contador que lleva varias empresas (bien podría ser el caso en la cerealera). ¿Cómo se modela el acceso de una persona a más de un tenant sin romper el aislamiento?</li>
+      </ul>
+
+      <h2>7. Puertas a futuro (no ahora)</h2>
+      <p>No se construyen en esta etapa; la arquitectura sólo deja lugar para no cerrarse el camino. Sumarlas hoy sería el sobre-diseño que este boceto justamente evita.</p>
+      <ul>
+        <li><strong>Memoria organizacional:</strong> responder "¿por qué se rechazó este lote hace tres meses?" o "¿qué criterio usamos la última vez con este proveedor?". Valor diferencial real, pero posterior al MVP de consultas repetitivas.</li>
+        <li><strong>Capa de herramientas (MCP) y orquestación tipo agente:</strong> para cuando una consulta requiera planificar, tocar varios sistemas y consolidar. Evolución posterior, una vez sólido el ruteo de consulta simple.</li>
+        <li><strong>Onboarding de tenants:</strong> aprovisionamiento de instancia y carga inicial de datos automatizados. Se justifica cuando el volumen de clientes lo pida, no antes.</li>
+      </ul>
+    </section>
+
+    <!-- ============ SIMULACIÓN ============ -->
+    <section id="sec-sim" class="section sim">
+      <div class="sec-head">
+        <p class="eyebrow">Spartan IT · simulación</p>
+        <h1>El recorrido de una <span class="accent">consulta</span></h1>
+        <p class="lede">Elegí una consulta (o escribí una) y mirá cómo viaja: primero se resuelve de qué cliente es y va a su instancia aislada; ahí adentro, la cascada de ruteo decide si es un dato directo o necesita interpretación.</p>
+        <div class="rule"></div>
+      </div>
+
+      <div class="note"><strong>Qué es y qué no es.</strong> Esto simula la <em>lógica</em> de ruteo —cómo se decide el camino de cada consulta— con un clasificador por reglas, en vivo. No está conectado a datos reales ni a ninguna API, y el clasificador es una heurística de demostración, no el router de producción. Es un modelo para pensar el flujo, no el sistema funcionando.</div>
+
+      <div class="picker">
+        <p class="pl">Consultas de ejemplo</p>
+        <div class="chips" id="chips"></div>
+        <p class="pl">…o escribí una</p>
+        <div class="free">
+          <input type="text" id="freeq" placeholder="Ej: ¿cuánto stock de maíz hay en el silo 2?" autocomplete="off">
+          <button class="runbtn" id="runFree">Correr consulta</button>
+          <button class="resetbtn" id="resetBtn">Reiniciar</button>
+        </div>
+        <div class="tenant-sel">Tenant para la consulta libre:
+          <button class="tbtn" data-tenant="cerealera" aria-pressed="true">Cerealera del Sur</button>
+          <button class="tbtn" data-tenant="lab" aria-pressed="false">Laboratorio Norte</button>
+        </div>
+      </div>
+
+      <div class="pipe">
+        <div class="stage" id="stQuery">
+          <div class="st-head"><span class="st-n">0</span><span class="st-t">Consulta entrante</span></div>
+          <div class="st-sub">El mensaje que llega por WhatsApp.</div>
+          <div class="body"><span class="qecho" id="qEcho">— elegí o escribí una consulta —</span></div>
+        </div>
+        <div class="connector" id="c1"></div>
+
+        <div class="stage" id="stTenant">
+          <div class="st-head"><span class="st-n">1</span><span class="st-t">Ruteo de tenant</span></div>
+          <div class="st-sub">¿De qué cliente es? → a su instancia aislada (pilar 02).</div>
+          <div class="body">
+            <div class="tenants">
+              <div class="tcard" id="tc-cerealera"><div class="tn"><span class="dot"></span>Cerealera del Sur</div><div class="tv">Agro · cereales</div><div class="tconn">conector · vistas SQL parciales</div></div>
+              <div class="tcard lab" id="tc-lab"><div class="tn"><span class="dot"></span>Laboratorio Norte</div><div class="tv">Salud · análisis clínicos</div><div class="tconn">conector · SQL Server directo</div></div>
+            </div>
+            <p class="iso-note" id="isoNote">Las otras instancias quedan fuera: la consulta sólo toca el dato de <strong>su</strong> tenant.</p>
+          </div>
+        </div>
+        <div class="connector" id="c2"></div>
+
+        <div class="stage" id="stCascade">
+          <div class="st-head"><span class="st-n">2</span><span class="st-t">Cascada de ruteo de consulta</span></div>
+          <div class="st-sub">Dentro de la instancia. Reglas en orden, la primera que matchea decide (como una cadena de firewall).</div>
+          <div class="body">
+            <div class="chain" id="chain">
+              <div class="crule" id="r-ocr"><span class="ci">R1</span><span class="ctxt">Documento / imagen adjunta<br><span class="ccond">→ cadena OCR (extraer + interpretar)</span></span><span class="cverdict" id="v-ocr">—</span></div>
+              <div class="crule" id="r-sem"><span class="ci">R2</span><span class="ctxt">Pide interpretación o análisis<br><span class="ccond">→ cadena SEMÁNTICA (embedding + RAG + LLM)</span></span><span class="cverdict" id="v-sem">—</span></div>
+              <div class="crule" id="r-det"><span class="ci">R3</span><span class="ctxt">Lookup directo (saldo, stock, factura, estudio)<br><span class="ccond">→ cadena DETERMINÍSTICA (consulta a la base)</span></span><span class="cverdict" id="v-det">—</span></div>
+              <div class="crule deftrap" id="r-def"><span class="ci">def</span><span class="ctxt">No matchea ninguna<br><span class="ccond">→ política por defecto: pedir aclaración, no inventar</span></span><span class="cverdict" id="v-def">—</span></div>
+            </div>
+            <div class="chain-result" id="chainResult"></div>
+            <div class="chain-note"><strong>Caso híbrido (el más común):</strong> casi toda consulta interpretativa combina cadenas — un paso determinístico trae el dato de la base y el modelo lo interpreta. La cascada decide por dónde <em>entra</em> la consulta; el guardrail de salida asegura que los números vengan de la base aun cuando la respuesta sea semántica.</div>
+            <p class="chain-cap">El orden barato→caro es deliberado, igual que en iptables se ponen las reglas frecuentes primero. Los casos ambiguos —con señales mezcladas (p. ej. “analizá el saldo del trimestre”)— son los que escalarían a un clasificador semántico más fino. Acá se resuelven por reglas para mostrar el flujo.</p>
+          </div>
+        </div>
+        <div class="connector" id="c3"></div>
+
+        <div class="stage" id="stEgress">
+          <div class="st-head"><span class="st-n">3</span><span class="st-t">Guardrail de salida</span></div>
+          <div class="st-sub">Control de egreso: qué puede salir como respuesta.</div>
+          <div class="body"><div class="egress" id="egressBox"><span class="ei" id="egressI">·</span><span id="egressTxt">—</span></div></div>
+        </div>
+        <div class="connector" id="c4"></div>
+
+        <div class="stage" id="stResp">
+          <div class="st-head"><span class="st-n">4</span><span class="st-t">Respuesta</span></div>
+          <div class="st-sub">Qué se devuelve, desde dónde, y a qué costo.</div>
+          <div class="body">
+            <div class="resp">
+              <p class="rk">Tipo de respuesta</p>
+              <p class="rt" id="respType">—</p>
+              <div class="rmeta">
+                <div class="m"><div class="mk">Fuente del dato</div><div class="mv" id="mSource">—</div></div>
+                <div class="m"><div class="mk">Costo</div><div class="mv" id="mCost">—</div></div>
+                <div class="m"><div class="mk">Latencia</div><div class="mv" id="mLat">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="legend"><strong>Cómo leerlo.</strong> La cadena determinística es casi gratis y no toca el modelo grande — el número sale de la base. La semántica es la cara (embedding + recuperación + generación). El OCR está en el medio. La política por defecto cuesta casi nada y es la postura conservadora: ante la duda, no se arriesga un dato. El guardrail de salida es la regla dura de Spartan: <strong>los números salen de la base, nunca del modelo</strong>.</p>
+    </section>
+
+    <!-- ============ ROADMAP ============ -->
+    <section id="sec-road" class="section doc road">
+      <div class="sec-head">
+        <p class="eyebrow">Spartan IT · roadmap</p>
+        <h1>Qué falta para <span class="accent">escalar</span></h1>
+        <p class="lede">El mapa de lo que una plataforma multi-tenant real necesita antes de servir a varios clientes — ordenado por <em>cuándo</em> hace falta, no por importancia.</p>
+        <div class="rule"></div>
+      </div>
+
+      <div class="banner-strong">
+        <strong>Esto es el después, no el ahora.</strong> Todo lo de esta pestaña se construye <strong>después</strong> de validar el piloto de la cerealera. Hoy no se hace nada de esto — sumarlo antes sería exactamente el sobre-diseño que el boceto (pestaña 01) evita a propósito. Es un backlog ordenado por fase, no una lista de tareas pendientes.
+        <span class="bs-now">▸ Fase actual: Piloto</span>
+      </div>
+
+      <p>Cada fase tiene un <strong>disparador</strong>: la situación que la vuelve necesaria. Nada se adelanta a su fase. La lista parece larga — está bien, es un backlog, no un sprint.</p>
+
+      <div class="phase now">
+        <div class="phase-head"><h3>Fase 0 — Piloto</h3><span class="ph-badge now">ahora</span></div>
+        <p class="ph-trigger">Disparador: validar que una cerealera paga por esto.</p>
+        <ul>
+          <li>Router de consulta: cascada determinístico / semántico + guardrail de números. (Se diseña en el doc del router.)</li>
+          <li>Integración por vistas parciales con la cerealera, al ritmo que entrega su IT.</li>
+          <li>Telemetría de costo por evento. <span class="rtag done">ya diseñado</span> — cubre el "costo de LLM por consulta" que pedían los análisis.</li>
+          <li>Validar el router con casos reales de Luciana, no con la demo. La simulación muestra la lógica; no la valida.</li>
+        </ul>
+        <p class="out"><strong>Fuera de esta fase</strong> (sería prematuro): gestión de claves, infra multi-tenant, facturación automática, observabilidad, alta disponibilidad, CI/CD.</p>
+      </div>
+
+      <div class="phase soon">
+        <div class="phase-head"><h3>Fase 1 — Primeros clientes pagos</h3><span class="ph-badge soon">después</span></div>
+        <p class="ph-trigger">Disparador: ya hay plata de por medio y 2–3 clientes. Acá se cierran varias decisiones abiertas.</p>
+        <ul>
+          <li>Identificación de tenant: elegir mecanismo (subdominio / token JWT / clave + id). <span class="rtag">decisión abierta</span></li>
+          <li>Aislamiento por tenant: esquema con row-level security vs. base separada vs. instancia. <span class="rtag">decisión abierta</span></li>
+          <li>Estrategia de conectores: driver genérico / wrapper / CDC. Que la parte a medida se achique con cada cliente. <span class="rtag">decisión abierta</span></li>
+          <li>Modelo de facturación + conteo de eventos híbridos. <span class="rtag">decisión abierta</span></li>
+          <li>Gestión básica de credenciales: secret manager, claves fuera del código.</li>
+          <li>Observabilidad mínima: logs estructurados + la telemetría de costo que ya existe.</li>
+          <li>Manejo de errores: si el LLM está caído, degradación que <strong>no viola el guardrail</strong> (pedir aclaración o avisar indisponibilidad, nunca estimar un número).</li>
+          <li>Lógica de ruteo server-side, versionada y testeada — no hardcodeada en el front.</li>
+          <li>TLS + cifrado en reposo básico.</li>
+        </ul>
+      </div>
+
+      <div class="phase later">
+        <div class="phase-head"><h3>Fase 2 — Plataforma a escala</h3><span class="ph-badge later">más adelante</span></div>
+        <p class="ph-trigger">Disparador: muchos clientes y carga real.</p>
+        <ul>
+          <li>Alta disponibilidad del router (réplicas, balanceo) + capa de descubrimiento. Hoy el ruteo central es un punto único de falla.</li>
+          <li>Sharding / particionamiento si la carga lo pide.</li>
+          <li>IaC + CI/CD para aprovisionar instancias (Terraform/Pulumi, blue-green/canary).</li>
+          <li>Observabilidad completa: tracing distribuido, alerting.</li>
+          <li>Rotación / HSM de claves, auditoría de uso.</li>
+          <li>mTLS entre router, instancia y fuentes de datos.</li>
+          <li>Permisos granulares (roles / scopes / ABAC) + acceso cross-tenant. <span class="rtag">decisión abierta</span></li>
+          <li>Versionado de conectores y de contratos de datos (migraciones de schema).</li>
+          <li>Pruebas de carga: QPS por tenant, stress del router y conectores.</li>
+          <li>SLA / SLO formales con penalizaciones — base contractual de la facturación.</li>
+          <li>Resiliencia: circuit breakers, modo degradado por tenant.</li>
+        </ul>
+      </div>
+
+      <h2>Puertas a futuro (más allá de la infraestructura)</h2>
+      <p>Del boceto (§7). No es deuda de producción; es evolución de producto.</p>
+      <ul>
+        <li><strong>Memoria organizacional:</strong> el diferenciador cuando las consultas sean commodity.</li>
+        <li><strong>Orquestación tipo agente / MCP:</strong> para consultas multi-paso.</li>
+        <li><strong>Onboarding automatizado de tenants:</strong> se solapa con el IaC de Fase 2.</li>
+      </ul>
+
+      <h2>Notas y discrepancias con los análisis</h2>
+      <ul>
+        <li><strong>"Gestión de claves desde el día 1 es inaceptable de postergar."</strong> No para nuestra etapa. Para un piloto de un cliente, sobre vistas que nos entregan, postergarla no es un agujero — es evitar producción prematura. Necesaria en Fase 1, con varios clientes. El análisis la marca inaceptable porque razona en multi-tenant productivo; no es donde estamos.</li>
+        <li><strong>"Respuesta estimada con nivel de confianza."</strong> Se incorpora solo de forma compatible con el guardrail. Un número estimado en contexto contable o de stock está prohibido por diseño. Degradación = pedir aclaración o avisar indisponibilidad, jamás inventar. Es la única recomendación de los análisis que se rechaza de plano.</li>
+        <li><strong>Vocabulario único.</strong> Conviene fijar un glosario (instancia / esquema / contenedor / on-premise) al escribir la spec de infraestructura. Menor, pero evita confusión entre dev, ops y legal.</li>
+        <li><strong>Ya cubierto y no lo vieron:</strong> el costo de LLM por consulta (telemetría ya diseñada) y el conteo de eventos híbridos (ya es decisión abierta en el boceto).</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ---------- navegación ---------- */
+(function(){
+  const btns=document.querySelectorAll(".nav button");
+  const secs=document.querySelectorAll(".section");
+  btns.forEach(b=>b.addEventListener("click",()=>{
+    const t=b.dataset.target;
+    secs.forEach(s=>s.classList.toggle("active", s.id===t));
+    btns.forEach(x=>x.setAttribute("aria-current", x===b?"true":"false"));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }));
+})();
+
+/* ---------- simulación ---------- */
+(function(){
+  const TENANTS={
+    cerealera:{name:"Cerealera del Sur", vert:"Agro · cereales", cls:"cer", conn:"vistas SQL parciales"},
+    lab:{name:"Laboratorio Norte", vert:"Salud · análisis clínicos", cls:"lab", conn:"SQL Server directo"}
+  };
+  const QUERIES=[
+    {q:"¿Cuál es el saldo de la cuenta de Molinos del Plata?", t:"cerealera"},
+    {q:"¿Cuánto stock de soja hay en el silo 3?", t:"cerealera"},
+    {q:"¿Está paga la factura 0001-00012345?", t:"cerealera"},
+    {q:"Te mando la foto de esta carta de porte, ¿cuánto suma?", t:"cerealera"},
+    {q:"¿Cómo viene la cuenta de Aceitera del Litoral este mes comparada con el anterior?", t:"cerealera"},
+    {q:"Analizá la evolución del stock de soja de los últimos 6 meses y dame insights", t:"cerealera"},
+    {q:"Analizá el saldo de la cuenta del último trimestre", t:"cerealera"},
+    {q:"Resultado del estudio del paciente 4821", t:"lab"},
+    {q:"Hola, tengo una consulta", t:"cerealera"}
+  ];
+
+  let freeTenant="cerealera";
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // clasificador por reglas (heurística de demo)
+  function classify(text){
+    const t=" "+text.toLowerCase()+" ";
+    const ocr=/(foto|imagen|adjunt|captura|escane|carta de porte.*(suma|cu[aá]nto)|te mando.*(foto|carta|factura)|te paso.*(foto|carta|imagen))/.test(t)
+              || /\bfoto\b|\bimagen\b/.test(t);
+    const sem=/(c[oó]mo viene|c[oó]mo est[aá]|analiz|compar|versus|\bvs\b|tendencia|evoluci[oó]n|resum|por qu[eé]|explic|promedio|este mes.*anterior|[uú]ltim[oa]s? (mes|trimestre|semana))/.test(t);
+    const det=/(saldo|cu[aá]nto debo|deuda|stock|existencias|cu[aá]nto.*(hay|queda)|pag[oa]|factura|comprobante|estudio|resultado|precio de)/.test(t)
+              || /\b\d{3,}\b/.test(t);
+    if(ocr) return mk("ocr");
+    if(sem) return mk("sem");
+    if(det) return mk("det");
+    return mk("def");
+
+    function mk(chain){
+      const numeric = (chain==="det"||chain==="ocr"||chain==="sem")
+        && /(saldo|stock|existencias|cu[aá]nto|suma|deuda|precio|resultado|importe|total|factura|comprobante)/.test(t);
+      return {chain, numeric};
+    }
+  }
+
+  const CHAINMETA={
+    det:{ type:"Dato directo de la base.", source:"Base de datos (lookup)", cost:["Casi nulo","b-green"], lat:["Baja","b-green"], srcCls:"b-blue" },
+    ocr:{ type:"Lectura de documento + interpretación.", source:"OCR + LLM", cost:["Medio","b-amber"], lat:["Media","b-amber"], srcCls:"b-amber" },
+    sem:{ type:"Interpretación sobre datos traídos de la base (consulta híbrida).", source:"Lookup + RAG + LLM", cost:["Alto","b-rust"], lat:["Alta","b-rust"], srcCls:"b-rust" },
+    def:{ type:"Pedido de aclaración — no se arriesga una respuesta.", source:"Ninguna (no toca modelo ni base)", cost:["Casi nulo","b-green"], lat:["Baja","b-green"], srcCls:"b-grey" }
+  };
+  const RULELABEL={
+    ocr:{n:"R1", txt:"Documento / imagen adjunta", chain:"cadena OCR"},
+    sem:{n:"R2", txt:"Pide interpretación o análisis", chain:"cadena semántica"},
+    det:{n:"R3", txt:"Lookup directo", chain:"cadena determinística"},
+    def:{n:"def", txt:"Ninguna regla matchea", chain:"política por defecto · pedir aclaración"}
+  };
+
+  function resetPipe(){
+    ["stQuery","stTenant","stCascade","stEgress","stResp"].forEach(id=>document.getElementById(id).classList.remove("active"));
+    ["c1","c2","c3","c4"].forEach(id=>document.getElementById(id).classList.remove("active"));
+    document.getElementById("tc-cerealera").classList.remove("on");
+    document.getElementById("tc-lab").classList.remove("on");
+    ["ocr","sem","det","def"].forEach(r=>{
+      const el=document.getElementById("r-"+r); el.classList.remove("skip","hit","unreached");
+      document.getElementById("v-"+r).textContent="—";
+    });
+    const cr=document.getElementById("chainResult"); cr.classList.remove("show","deft"); cr.innerHTML="";
+  }
+
+  function resetAll(){
+    resetPipe();
+    document.getElementById("qEcho").textContent="— elegí o escribí una consulta —";
+    document.querySelectorAll(".qchip").forEach(x=>x.setAttribute("aria-pressed","false"));
+    document.getElementById("freeq").value="";
+    document.getElementById("egressTxt").textContent="—";
+    document.getElementById("egressI").textContent="·";
+    document.getElementById("egressBox").classList.remove("skip");
+    document.getElementById("respType").textContent="—";
+    document.getElementById("mSource").textContent="—";
+    document.getElementById("mCost").textContent="—";
+    document.getElementById("mLat").textContent="—";
+  }
+
+  function step(fn,delay){ if(reduce){ fn(); } else { setTimeout(fn, delay); } }
+
+  function run(text, tenantKey){
+    if(!text || !text.trim()) return;
+    const res=classify(text);
+    const ten=TENANTS[tenantKey];
+    resetPipe();
+
+    // 0 — consulta
+    document.getElementById("qEcho").textContent = "“"+text.trim()+"”";
+    step(()=>document.getElementById("stQuery").classList.add("active"), 60);
+
+    // 1 — tenant
+    step(()=>{
+      document.getElementById("c1").classList.add("active");
+      document.getElementById("stTenant").classList.add("active");
+      const onId = tenantKey==="lab" ? "tc-lab" : "tc-cerealera";
+      document.getElementById(onId).classList.add("on");
+      document.getElementById("isoNote").innerHTML =
+        "Va a la instancia aislada de <strong>"+ten.name+"</strong> (conector: "+ten.conn+"). La otra queda fuera: la consulta sólo toca el dato de su tenant.";
+    }, reduce?0:520);
+
+    // 2 — cascada (evaluación en orden)
+    const order=["ocr","sem","det","def"];
+    const hit=res.chain;
+    step(()=>{
+      document.getElementById("c2").classList.add("active");
+      document.getElementById("stCascade").classList.add("active");
+    }, reduce?0:1040);
+
+    order.forEach((r,idx)=>{
+      step(()=>{
+        const el=document.getElementById("r-"+r);
+        const v=document.getElementById("v-"+r);
+        const hitIdx=order.indexOf(hit);
+        if(idx<hitIdx){ el.classList.add("skip"); v.textContent="no matchea"; }
+        else if(r===hit){ el.classList.add("hit"); v.textContent = r==="def" ? "▶ por defecto" : "▶ matchea"; }
+        else { el.classList.add("unreached"); v.textContent="no evaluada"; }
+      }, reduce?0:(1240 + idx*240));
+    });
+
+    // resultado de la cascada — regla aplicada
+    step(()=>{
+      const rl=RULELABEL[hit];
+      const cr=document.getElementById("chainResult");
+      cr.classList.add("show");
+      cr.classList.toggle("deft", hit==="def");
+      cr.innerHTML="Regla aplicada: <strong>"+rl.n+" — "+rl.txt+"</strong> → "+rl.chain+".";
+    }, reduce?0:(1240 + order.length*240 + 80));
+
+    // 3 — egress
+    step(()=>{
+      document.getElementById("c3").classList.add("active");
+      document.getElementById("stEgress").classList.add("active");
+      const box=document.getElementById("egressBox");
+      const i=document.getElementById("egressI");
+      const txt=document.getElementById("egressTxt");
+      box.classList.remove("skip");
+      if(hit==="def"){
+        box.classList.add("skip"); i.textContent="·";
+        txt.textContent="No hay dato que devolver: se pide aclaración.";
+      } else {
+        i.textContent="✓";
+        txt.innerHTML="Todo dato de la respuesta (números, saldos, resultados) sale de la base o del dato recuperado, <strong>nunca generado por el modelo</strong>. El modelo sólo redacta.";
+      }
+    }, reduce?0:(1240 + order.length*240 + 220));
+
+    // 4 — respuesta
+    step(()=>{
+      document.getElementById("c4").classList.add("active");
+      document.getElementById("stResp").classList.add("active");
+      const m=CHAINMETA[hit];
+      document.getElementById("respType").textContent=m.type;
+      const src=document.getElementById("mSource");
+      src.innerHTML='<span class="badge '+m.srcCls+'">'+m.source+'</span>';
+      document.getElementById("mCost").innerHTML='<span class="badge '+m.cost[1]+'">'+m.cost[0]+'</span>';
+      document.getElementById("mLat").innerHTML='<span class="badge '+m.lat[1]+'">'+m.lat[0]+'</span>';
+    }, reduce?0:(1240 + order.length*240 + 520));
+  }
+
+  // render chips
+  const chips=document.getElementById("chips");
+  QUERIES.forEach((item,i)=>{
+    const b=document.createElement("button");
+    b.className="qchip"; b.type="button";
+    const tg=TENANTS[item.t];
+    b.innerHTML='<span class="tg '+tg.cls+'">'+(item.t==="lab"?"LAB":"CER")+'</span><span>'+item.q+'</span>';
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".qchip").forEach(x=>x.setAttribute("aria-pressed","false"));
+      b.setAttribute("aria-pressed","true");
+      run(item.q, item.t);
+    });
+    chips.appendChild(b);
+  });
+
+  // tenant selector for free query
+  document.querySelectorAll(".tenant-sel .tbtn").forEach(b=>{
+    b.addEventListener("click",()=>{
+      freeTenant=b.dataset.tenant;
+      document.querySelectorAll(".tenant-sel .tbtn").forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false"));
+    });
+  });
+
+  // free query
+  function runFree(){
+    const v=document.getElementById("freeq").value;
+    if(!v.trim()) return;
+    document.querySelectorAll(".qchip").forEach(x=>x.setAttribute("aria-pressed","false"));
+    run(v, freeTenant);
+  }
+  document.getElementById("runFree").addEventListener("click", runFree);
+  document.getElementById("freeq").addEventListener("keydown",e=>{ if(e.key==="Enter") runFree(); });
+  document.getElementById("resetBtn").addEventListener("click", resetAll);
+})();
+</script>
+</body>
+</html>
